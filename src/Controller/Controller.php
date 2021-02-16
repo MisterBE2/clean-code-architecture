@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controller;
@@ -36,12 +37,14 @@ class Controller extends AbstractController
                 ->getOneOrNullResult();
 
             if ($doctor) {
-                return new JsonResponse([
-                    'id' => $doctor->getId(),
-                    'firstName' => $doctor->getFirstName(),
-                    'lastName' => $doctor->getLastName(),
-                    'specialization' => $doctor->getSpecialization(),
-                ]);
+                return new JsonResponse(
+                    [
+                        'id' => $doctor->getId(),
+                        'firstName' => $doctor->getFirstName(),
+                        'lastName' => $doctor->getLastName(),
+                        'specialization' => $doctor->getSpecialization(),
+                    ]
+                );
             } else {
                 return new JsonResponse([], 404);
             }
@@ -60,7 +63,6 @@ class Controller extends AbstractController
 // result
             return new JsonResponse(['id' => $doctor->getId()]);
         }
-
         //TODO other methods?
     }
 
@@ -79,7 +81,6 @@ class Controller extends AbstractController
             ->getOneOrNullResult();
 
         if ($doc) {
-
             if ($request->getMethod() === 'GET') {
 //get slots
                 /** @var SlotEntity[] $array */
