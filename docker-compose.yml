@@ -35,6 +35,10 @@ services:
       MYSQL_ROOT_PASSWORD: docplanner<3
     networks:
       internal: ~
+    expose:
+      - "3306"
+    ports:
+      - "15000:3306"
 
 networks:
   internal:
