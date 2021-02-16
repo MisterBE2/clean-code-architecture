@@ -21,13 +21,14 @@ class Controller extends AbstractController
     function doctor(Request $request)
     {
         if ($request->getMethod() === 'GET') {
-//get doctor
+            // Get doctor
             $id = $request->get('id');
-            /** @var EntityManagerInterface $man */
-            $man = $this->getDoctrine()->getManager();
 
-// get doctor
-            $doctor = $man->createQueryBuilder()
+            /** @var EntityManagerInterface $doctrineManager */
+            $doctrineManager = $this->getDoctrine()->getManager();
+
+            // Get doctor
+            $doctorEntity = $doctrineManager->createQueryBuilder()
                 ->select('doctor')
                 ->from(DoctorEntity::class, 'doctor')
                 ->where('doctor.id=:id')
@@ -36,42 +37,44 @@ class Controller extends AbstractController
                 ->getQuery()
                 ->getOneOrNullResult();
 
-            if ($doctor) {
+            if ($doctorEntity) {
                 return new JsonResponse(
                     [
-                        'id' => $doctor->getId(),
-                        'firstName' => $doctor->getFirstName(),
-                        'lastName' => $doctor->getLastName(),
-                        'specialization' => $doctor->getSpecialization(),
+                        'id' => $doctorEntity->getId(),
+                        'firstName' => $doctorEntity->getFirstName(),
+                        'lastName' => $doctorEntity->getLastName(),
+                        'specialization' => $doctorEntity->getSpecialization(),
                     ]
                 );
             } else {
                 return new JsonResponse([], 404);
             }
         } elseif ($request->getMethod() === 'POST') {
-//add doctor
-            $man = $this->getDoctrine()->getManager();
+            // Add doctor
+            $doctrineManager = $this->getDoctrine()->getManager();
 
-            $doctor = new DoctorEntity();
-            $doctor->setFirstName($request->get('firstName'));
-            $doctor->setLastName($request->get('lastName'));
-            $doctor->setSpecialization($request->get('specialization'));
+            $doctorEntity = new DoctorEntity();
+            $doctorEntity->setFirstName($request->get('firstName'));
+            $doctorEntity->setLastName($request->get('lastName'));
+            $doctorEntity->setSpecialization($request->get('specialization'));
 
-            $man->persist($doctor);
-            $man->flush();
+            $doctrineManager->persist($doctorEntity);
+            $doctrineManager->flush();
 
-// result
-            return new JsonResponse(['id' => $doctor->getId()]);
+            // Result
+            return new JsonResponse(['id' => $doctorEntity->getId()]);
         }
+
         //TODO other methods?
     }
 
     function slots(int $doctorId, Request $request)
     {
-        /** @var EntityManagerInterface $man */
-        $man = $this->getDoctrine()->getManager();
-// get doctor
-        $doc = $man->createQueryBuilder()
+        /** @var EntityManagerInterface $doctrineManager */
+        $doctrineManager = $this->getDoctrine()->getManager();
+
+        // Get doctor
+        $queryBuilder = $doctrineManager->createQueryBuilder()
             ->select('doctor')
             ->from(DoctorEntity::class, 'doctor')
             ->where('doctor.id=:id')
@@ -80,38 +83,38 @@ class Controller extends AbstractController
             ->getQuery()
             ->getOneOrNullResult();
 
-        if ($doc) {
+        if ($queryBuilder) {
             if ($request->getMethod() === 'GET') {
-//get slots
-                /** @var SlotEntity[] $array */
-                $array = $doc->slots();
+                //Get slots
+                /** @var SlotEntity[] $slots */
+                $slots = $queryBuilder->slots();
 
-                if (count($array)) {
-                    $res = [];
-                    foreach ($array as $slot) {
-                        $res[] = [
+                if (count($slots)) {
+                    $responseData = [];
+                    foreach ($slots as $slot) {
+                        $responseData[] = [
                             'id' => $slot->getId(),
                             'day' => $slot->getDay()->format('Y-m-d'),
                             'from_hour' => $slot->getFromHour(),
                             'duration' => $slot->getDuration()
                         ];
                     }
-                    return new JsonResponse($res);
+                    return new JsonResponse($responseData);
                 } else {
                     return new JsonResponse([]);
                 }
             } elseif ($request->getMethod() === 'POST') {
-// add slot
+                // Add slot
                 $slot = new SlotEntity();
                 $slot->setDay(new DateTime($request->get('day')));
-                $slot->setDoctor($doc);
+                $slot->setDoctor($queryBuilder);
                 $slot->setDuration((int)$request->get('duration'));
                 $slot->setFromHour($request->get('from_hour'));
 
-                $man->persist($slot);
-                $man->flush();
+                $doctrineManager->persist($slot);
+                $doctrineManager->flush();
 
-// result
+                //Result
                 return new JsonResponse(['id' => $slot->getId()]);
             }
         } else {
