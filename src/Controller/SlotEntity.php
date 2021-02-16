@@ -26,7 +26,7 @@ final class SlotEntity
     /**
      * @ORM\Column(type="string")
      */
-    protected $from_hour;
+    protected $fromHour;
 
     /**
      * @ORM\Column(type="integer")
@@ -58,15 +58,15 @@ final class SlotEntity
 
     public function getFromHour()
     {
-        return $this->from_hour;
+        return $this->fromHour;
     }
 
     /**
-     * @param mixed $from_hour
+     * @param mixed $fromHour
      */
-    public function setFromHour($from_hour)
+    public function setFromHour($fromHour)
     {
-        $this->from_hour = $from_hour;
+        $this->fromHour = $fromHour;
     }
 
     public function getDuration()

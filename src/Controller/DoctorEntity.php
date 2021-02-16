@@ -26,7 +26,7 @@ class DoctorEntity
     /**
      * @ORM\Column(type="string")
      */
-    protected $last_name;
+    protected $lastName;
 
     /**
      * @ORM\Column(type="string")
@@ -58,15 +58,15 @@ class DoctorEntity
 
     public function getLastName()
     {
-        return $this->last_name;
+        return $this->lastName;
     }
 
     /**
-     * @param mixed $last_name
+     * @param mixed $lastName
      */
-    public function setLastName($last_name)
+    public function setLastName($lastName)
     {
-        $this->last_name = $last_name;
+        $this->lastName = $lastName;
     }
 
     public function getSpecialization()
