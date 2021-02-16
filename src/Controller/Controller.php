@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use DateTime;
-use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\Persistence\ObjectManager;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -43,6 +43,14 @@ class Controller extends AbstractController
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
+    }
+
+    /**
+     * @return ObjectManager
+     */
+    private function getDoctrineManager(): ObjectManager
+    {
+        return $this->getDoctrine()->getManager();
     }
 
     /**
@@ -86,9 +94,7 @@ class Controller extends AbstractController
         $doctor->setLastName($request->get('lastName'));
         $doctor->setSpecialization($request->get('specialization'));
 
-        $doctrineManager = $this->getDoctrineManager();
-        $doctrineManager->persist($doctor);
-        $doctrineManager->flush();
+        $this->saveDoctor($doctor);
 
         return $doctor->getId();
     }
@@ -141,30 +147,23 @@ class Controller extends AbstractController
      */
     function addSlotController(int $doctorId, Request $request): JsonResponse
     {
-        /** @var EntityManagerInterface $doctrineManager */
-        $doctrineManager = $this->getDoctrine()->getManager();
         $doctor = $this->getDoctorById($doctorId);
 
         if (is_null($doctor)) {
             return new JsonResponse([], 404);
         }
 
-        if ($doctor) {
-            $slotId = $this->addSlot($request, $doctor, $doctrineManager);
-            return new JsonResponse(['id' => $slotId]);
-        }
-
-        return new JsonResponse([], 400);
+        $slotId = $this->addSlot($request, $doctor);
+        return new JsonResponse(['id' => $slotId]);
     }
 
     /**
      * @param Request $request
      * @param DoctorEntity $doctor
-     * @param EntityManagerInterface $doctrineManager
      * @return int
      * @throws \Exception
      */
-    private function addSlot(Request $request, DoctorEntity $doctor, EntityManagerInterface $doctrineManager): int
+    private function addSlot(Request $request, DoctorEntity $doctor): int
     {
         $slot = new SlotEntity();
         $slot->setDay(new DateTime($request->get('day')));
@@ -172,18 +171,28 @@ class Controller extends AbstractController
         $slot->setDuration((int)$request->get('duration'));
         $slot->setFromHour($request->get('from_hour'));
 
-        $doctrineManager = $this->getDoctrineManager();
-        $doctrineManager->persist($slot);
-        $doctrineManager->flush();
+        $this->saveSlot($slot);
 
         return $slot->getId();
     }
 
     /**
-     * @return \Doctrine\Persistence\ObjectManager
+     * @param SlotEntity $slot
      */
-    private function getDoctrineManager(): \Doctrine\Persistence\ObjectManager
+    private function saveSlot(SlotEntity $slot): void
     {
-        return $this->getDoctrine()->getManager();
+        $doctrineManager = $this->getDoctrineManager();
+        $doctrineManager->persist($slot);
+        $doctrineManager->flush();
+    }
+
+    /**
+     * @param DoctorEntity $doctor
+     */
+    private function saveDoctor(DoctorEntity $doctor): void
+    {
+        $doctrineManager = $this->getDoctrineManager();
+        $doctrineManager->persist($doctor);
+        $doctrineManager->flush();
     }
 }
