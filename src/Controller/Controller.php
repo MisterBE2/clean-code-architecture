@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
+use http\Env\Response;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -65,7 +66,7 @@ class Controller extends AbstractController
             return new JsonResponse(['id' => $doctorEntity->getId()]);
         }
 
-        //TODO other methods?
+        return new JsonResponse([], 400);
     }
 
     function slots(int $doctorId, Request $request)
@@ -120,6 +121,8 @@ class Controller extends AbstractController
         } else {
             return new JsonResponse([], 404);
         }
+
+        return new JsonResponse([], 400);
     }
 
 }
