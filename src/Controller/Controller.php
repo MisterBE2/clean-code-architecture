@@ -6,7 +6,6 @@ namespace App\Controller;
 
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\NonUniqueResultException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,21 +17,32 @@ class Controller extends AbstractController
         return new JsonResponse('ReallyDirty API v1.0');
     }
 
-    function doctor(Request $request)
+    /**
+     * @param Request $request
+     * @return JsonResponse
+     */
+    function getDoctorController(Request $request): JsonResponse
     {
-        /** @var EntityManagerInterface $doctrineManager */
-        $doctrineManager = $this->getDoctrine()->getManager();
+        $doctorId = intval($request->get('id'));
+        $doctor = $this->getDoctorById($doctorId);
 
-        if ($request->getMethod() === 'GET') {
-            $doctorId = intval($request->get('id'));
-            $doctor = $this->getDoctorById($doctorId, $doctrineManager);
-            return $this->respondWithDoctor($doctor);
-        } elseif ($request->getMethod() === 'POST') {
-            $doctorId = $this->addDoctor($request, $doctrineManager);
-            return new JsonResponse(['id' => $doctorId]);
-        }
+        return $this->respondWithDoctor($doctor);
+    }
 
-        return new JsonResponse([], 400);
+    /**
+     * @param int $doctorId
+     * @return DoctorEntity|null
+     */
+    private function getDoctorById(int $doctorId): ?DoctorEntity
+    {
+        return $this->getDoctrineManager()->createQueryBuilder()
+            ->select('doctor')
+            ->from(DoctorEntity::class, 'doctor')
+            ->where('doctor.id=:id')
+            ->setParameter('id', $doctorId)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 
     /**
@@ -57,16 +67,26 @@ class Controller extends AbstractController
 
     /**
      * @param Request $request
-     * @param EntityManagerInterface $doctrineManager
+     * @return JsonResponse
+     */
+    function addDoctorController(Request $request): JsonResponse
+    {
+        $doctorId = $this->addDoctor($request);
+        return new JsonResponse(['id' => $doctorId]);
+    }
+
+    /**
+     * @param Request $request
      * @return int
      */
-    private function addDoctor(Request $request, EntityManagerInterface $doctrineManager): int
+    private function addDoctor(Request $request): int
     {
         $doctor = new DoctorEntity();
         $doctor->setFirstName($request->get('firstName'));
         $doctor->setLastName($request->get('lastName'));
         $doctor->setSpecialization($request->get('specialization'));
 
+        $doctrineManager = $this->getDoctrineManager();
         $doctrineManager->persist($doctor);
         $doctrineManager->flush();
 
@@ -77,46 +97,17 @@ class Controller extends AbstractController
      * @param int $doctorId
      * @param Request $request
      * @return JsonResponse
-     * @throws NonUniqueResultException
      */
-    function slots(int $doctorId, Request $request): JsonResponse
+    function getSlotController(int $doctorId, Request $request): JsonResponse
     {
-        /** @var EntityManagerInterface $doctrineManager */
-        $doctrineManager = $this->getDoctrine()->getManager();
+        $doctor = $this->getDoctorById($doctorId);
 
-        $doctor = $this->getDoctorById($doctorId, $doctrineManager);
-
-        if ($doctor) {
-            if ($request->getMethod() === 'GET') {
-                $slots = $doctor->slots();
-                return $this->respondWithSlots($slots);
-            } elseif ($request->getMethod() === 'POST') {
-                $slotId = $this->addSlot($request, $doctor, $doctrineManager);
-                return new JsonResponse(['id' => $slotId]);
-            }
-        } else {
+        if (is_null($doctor)) {
             return new JsonResponse([], 404);
         }
 
-        return new JsonResponse([], 400);
-    }
-
-    /**
-     * @param int $doctorId
-     * @param EntityManagerInterface $doctrineManager
-     * @return DoctorEntity|null
-     * @throws NonUniqueResultException
-     */
-    private function getDoctorById(int $doctorId, EntityManagerInterface $doctrineManager): ?DoctorEntity
-    {
-        return $doctrineManager->createQueryBuilder()
-            ->select('doctor')
-            ->from(DoctorEntity::class, 'doctor')
-            ->where('doctor.id=:id')
-            ->setParameter('id', $doctorId)
-            ->setMaxResults(1)
-            ->getQuery()
-            ->getOneOrNullResult();
+        $slots = $doctor->slots();
+        return $this->respondWithSlots($slots);
     }
 
     /**
@@ -143,6 +134,30 @@ class Controller extends AbstractController
     }
 
     /**
+     * @param int $doctorId
+     * @param Request $request
+     * @return JsonResponse
+     * @throws \Exception
+     */
+    function addSlotController(int $doctorId, Request $request): JsonResponse
+    {
+        /** @var EntityManagerInterface $doctrineManager */
+        $doctrineManager = $this->getDoctrine()->getManager();
+        $doctor = $this->getDoctorById($doctorId);
+
+        if (is_null($doctor)) {
+            return new JsonResponse([], 404);
+        }
+
+        if ($doctor) {
+            $slotId = $this->addSlot($request, $doctor, $doctrineManager);
+            return new JsonResponse(['id' => $slotId]);
+        }
+
+        return new JsonResponse([], 400);
+    }
+
+    /**
      * @param Request $request
      * @param DoctorEntity $doctor
      * @param EntityManagerInterface $doctrineManager
@@ -157,9 +172,18 @@ class Controller extends AbstractController
         $slot->setDuration((int)$request->get('duration'));
         $slot->setFromHour($request->get('from_hour'));
 
+        $doctrineManager = $this->getDoctrineManager();
         $doctrineManager->persist($slot);
         $doctrineManager->flush();
 
         return $slot->getId();
+    }
+
+    /**
+     * @return \Doctrine\Persistence\ObjectManager
+     */
+    private function getDoctrineManager(): \Doctrine\Persistence\ObjectManager
+    {
+        return $this->getDoctrine()->getManager();
     }
 }
